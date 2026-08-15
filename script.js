@@ -1,6 +1,5 @@
 /*====================================================
     Dr. Wali Zeb Khan Portfolio
-    script.js - Part 1
 =====================================================*/
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -254,7 +253,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /*====================================================
-    script.js - Part 2
     Dark Mode • Scroll Reveal
     Skill Bars • Counters
 =====================================================*/
@@ -358,7 +356,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         {
 
-            threshold:0.15
+            threshold: 0.15
 
         }
 
@@ -394,7 +392,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     bar.style.width = width;
 
-                },150);
+                }, 150);
 
                 skillObserver.unobserve(bar);
 
@@ -404,7 +402,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         {
 
-            threshold:.4
+            threshold: .4
 
         }
 
@@ -420,93 +418,128 @@ document.addEventListener("DOMContentLoaded", () => {
 
         }
 
-        bar.style.width="0";
+        bar.style.width = "0";
 
         skillObserver.observe(bar);
 
     });
 
     /*=========================================
-        COUNTER ANIMATION
+    COUNTER ANIMATION
     =========================================*/
 
-    const counters = document.querySelectorAll(".counter");
+    /*
+        IMPORTANT:
+        Google Scholar counters are excluded here
+        because they are loaded separately from
+        data/scholar.json.
+    */
 
-    function animateCounter(counter){
+    const counters = document.querySelectorAll(
+        ".counter:not(#scholar-publications):not(#scholar-citations):not(#scholar-hindex):not(#scholar-i10)"
+    );
 
-        const target =
+    function animateCounter(counter) {
 
-            parseInt(counter.dataset.target);
+        const target = Number(
+            counter.dataset.target
+        );
 
-        const speed = 80;
+        // Prevent NaN
+        if (!Number.isFinite(target)) {
+            return;
+        }
 
-        let current = 0;
+        const duration = 1500;
 
-        const increment =
+        const startTime = performance.now();
 
-            Math.ceil(target / speed);
+        function updateCounter(currentTime) {
 
-        const update = () => {
+            const elapsed =
+                currentTime - startTime;
 
-            current += increment;
+            const progress =
+                Math.min(
+                    elapsed / duration,
+                    1
+                );
 
-            if(current >= target){
+            const easedProgress =
+                1 - Math.pow(
+                    1 - progress,
+                    3
+                );
 
-                counter.textContent = target;
+            const currentValue =
+                Math.floor(
+                    easedProgress * target
+                );
 
-                return;
+            counter.textContent =
+                currentValue.toLocaleString();
+
+            if (progress < 1) {
+
+                requestAnimationFrame(
+                    updateCounter
+                );
+
+            } else {
+
+                counter.textContent =
+                    target.toLocaleString();
 
             }
 
-            counter.textContent = current;
-
-            requestAnimationFrame(update);
-
-        };
-
-        update();
-
-    }
-
-    const counterObserver = new IntersectionObserver(
-
-        entries => {
-
-            entries.forEach(entry => {
-
-                if(entry.isIntersecting){
-
-                    animateCounter(entry.target);
-
-                    counterObserver.unobserve(entry.target);
-
-                }
-
-            });
-
-        },
-
-        {
-
-            threshold:.5
-
         }
 
-    );
+        requestAnimationFrame(
+            updateCounter
+        );
+    }
 
-    counters.forEach(counter=>{
 
-        counter.textContent="0";
+    const counterObserver =
+        new IntersectionObserver(
+
+            entries => {
+
+                entries.forEach(entry => {
+
+                    if (
+                        entry.isIntersecting
+                    ) {
+
+                        animateCounter(
+                            entry.target
+                        );
+
+                        counterObserver.unobserve(
+                            entry.target
+                        );
+
+                    }
+
+                });
+
+            },
+
+            {
+                threshold: 0.5
+            }
+
+        );
+    counters.forEach(counter => {
+
+        counter.textContent = "0";
 
         counterObserver.observe(counter);
 
     });
-
 });
 
-
 /*====================================================
-    script.js - Part 3A
     Loading Screen + Typing Animation
 =====================================================*/
 
@@ -617,4 +650,290 @@ document.addEventListener("DOMContentLoaded", () => {
     typeEffect();
 
 });
+
+/*====================================================
+    GOOGLE SCHOLAR RESEARCH IMPACT
+=====================================================*/
+
+async function loadScholarMetrics() {
+
+    const publications =
+        document.getElementById(
+            "scholar-publications"
+        );
+
+    const citations =
+        document.getElementById(
+            "scholar-citations"
+        );
+
+    const hIndex =
+        document.getElementById(
+            "scholar-hindex"
+        );
+
+    const i10Index =
+        document.getElementById(
+            "scholar-i10"
+        );
+
+    const updated =
+        document.getElementById(
+            "scholar-updated"
+        );
+
+
+    try {
+
+        const response = await fetch(
+            "data/scholar.json?v=" +
+            Date.now()
+        );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Scholar data could not be loaded"
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        console.log(
+            "Scholar data:",
+            data
+        );
+
+
+        animateScholarValue(
+            publications,
+            data.publications
+        );
+
+
+        animateScholarValue(
+            citations,
+            data.citations
+        );
+
+
+        animateScholarValue(
+            hIndex,
+            data.h_index
+        );
+
+
+        animateScholarValue(
+            i10Index,
+            data.i10_index
+        );
+
+
+        if (
+            updated &&
+            data.updated
+        ) {
+
+            updated.textContent =
+                "Last updated: " +
+                formatScholarDate(
+                    data.updated
+                );
+
+        }
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Scholar metrics error:",
+            error
+        );
+
+
+        /*
+            Don't show NaN if the data
+            cannot be loaded.
+        */
+
+        if (publications)
+            publications.textContent = "—";
+
+        if (citations)
+            citations.textContent = "—";
+
+        if (hIndex)
+            hIndex.textContent = "—";
+
+        if (i10Index)
+            i10Index.textContent = "—";
+
+
+        if (updated) {
+
+            updated.textContent =
+                "Research metrics unavailable";
+
+        }
+
+    }
+
+}
+
+
+/*=========================================
+    SCHOLAR COUNTER
+=========================================*/
+
+function animateScholarValue(
+    element,
+    value
+) {
+
+    if (!element) {
+        return;
+    }
+
+
+    const target =
+        Number(value);
+
+
+    /*
+        Prevent NaN
+    */
+
+    if (!Number.isFinite(target)) {
+
+        element.textContent = "—";
+
+        return;
+
+    }
+
+
+    let start = 0;
+
+    const duration = 1600;
+
+    const startTime =
+        performance.now();
+
+
+    function update(currentTime) {
+
+        const elapsed =
+            currentTime -
+            startTime;
+
+
+        const progress =
+            Math.min(
+                elapsed / duration,
+                1
+            );
+
+
+        /*
+            Smooth ease-out animation
+        */
+
+        const eased =
+            1 -
+            Math.pow(
+                1 - progress,
+                3
+            );
+
+
+        const current =
+            Math.floor(
+                start +
+                (target - start) *
+                eased
+            );
+
+
+        element.textContent =
+            current.toLocaleString();
+
+
+        if (progress < 1) {
+
+            requestAnimationFrame(
+                update
+            );
+
+        }
+
+        else {
+
+            element.textContent =
+                target.toLocaleString();
+
+        }
+
+    }
+
+
+    requestAnimationFrame(
+        update
+    );
+
+}
+
+
+/*=========================================
+    DATE FORMAT
+=========================================*/
+
+function formatScholarDate(
+    dateString
+) {
+
+    const date =
+        new Date(dateString);
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return dateString;
+
+    }
+
+
+    return date.toLocaleDateString(
+        "en-US",
+        {
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        }
+    );
+
+}
+
+
+/*=========================================
+    LOAD SCHOLAR DATA
+=========================================*/
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        loadScholarMetrics();
+
+    }
+);
 

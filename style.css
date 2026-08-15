@@ -3285,3 +3285,61 @@ opacity:0;
 }
 
 }
+
+
+/* =========================================
+   RESEARCH IMPACT GRID FIX
+========================================= */
+
+#impact .impact-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 25px;
+
+    width: 100%;
+
+    max-width: 1200px;
+
+    margin: 0 auto;
+
+}
+
+
+#impact .impact-card {
+
+    width: 100%;
+
+    min-width: 0;
+
+}
+
+
+/* Tablet */
+
+@media (max-width: 992px) {
+
+    #impact .impact-grid {
+
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+    }
+
+}
+
+
+/* Mobile */
+
+@media (max-width: 576px) {
+
+    #impact .impact-grid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+}
