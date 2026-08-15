@@ -653,287 +653,349 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /*====================================================
     GOOGLE SCHOLAR RESEARCH IMPACT
+    FINAL SAFE VERSION
 =====================================================*/
 
-async function loadScholarMetrics() {
+(function () {
 
-    const publications =
-        document.getElementById(
-            "scholar-publications"
-        );
+    "use strict";
 
-    const citations =
-        document.getElementById(
-            "scholar-citations"
-        );
+    function loadScholarMetrics() {
 
-    const hIndex =
-        document.getElementById(
-            "scholar-hindex"
-        );
+        const publications =
+            document.getElementById("scholar-publications");
 
-    const i10Index =
-        document.getElementById(
-            "scholar-i10"
-        );
+        const citations =
+            document.getElementById("scholar-citations");
 
-    const updated =
-        document.getElementById(
-            "scholar-updated"
-        );
+        const hIndex =
+            document.getElementById("scholar-hindex");
 
+        const i10Index =
+            document.getElementById("scholar-i10");
 
-    try {
-
-        const response = await fetch(
-            "data/scholar.json?v=" +
-            Date.now()
-        );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                "Scholar data could not be loaded"
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        console.log(
-            "Scholar data:",
-            data
-        );
-
-
-        animateScholarValue(
-            publications,
-            data.publications
-        );
-
-
-        animateScholarValue(
-            citations,
-            data.citations
-        );
-
-
-        animateScholarValue(
-            hIndex,
-            data.h_index
-        );
-
-
-        animateScholarValue(
-            i10Index,
-            data.i10_index
-        );
-
-
-        if (
-            updated &&
-            data.updated
-        ) {
-
-            updated.textContent =
-                "Last updated: " +
-                formatScholarDate(
-                    data.updated
-                );
-
-        }
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Scholar metrics error:",
-            error
-        );
+        const updated =
+            document.getElementById("scholar-updated");
 
 
         /*
-            Don't show NaN if the data
-            cannot be loaded.
+        ================================================
+        CHECK HTML
+        ================================================
         */
 
-        if (publications)
-            publications.textContent = "—";
+        if (
+            !publications ||
+            !citations ||
+            !hIndex ||
+            !i10Index
+        ) {
 
-        if (citations)
-            citations.textContent = "—";
+            console.error(
+                "Scholar HTML elements were not found."
+            );
 
-        if (hIndex)
-            hIndex.textContent = "—";
-
-        if (i10Index)
-            i10Index.textContent = "—";
-
-
-        if (updated) {
-
-            updated.textContent =
-                "Research metrics unavailable";
-
+            return;
         }
 
+
+        /*
+        ================================================
+        DEFAULT VALUES
+        ================================================
+        */
+
+        publications.textContent = "0";
+        citations.textContent = "0";
+        hIndex.textContent = "0";
+        i10Index.textContent = "0";
+
+
+        /*
+        ================================================
+        LOAD JSON
+        ================================================
+        */
+
+        fetch(
+            "./data/scholar.json?v=" +
+            Date.now(),
+            {
+                cache: "no-store"
+            }
+        )
+
+        .then(response => {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "HTTP " + response.status
+                );
+
+            }
+
+            return response.json();
+
+        })
+
+        .then(data => {
+
+            console.log(
+                "Scholar JSON loaded:",
+                data
+            );
+
+
+            /*
+            ============================================
+            READ VALUES
+            ============================================
+            */
+
+            const publicationValue =
+                Number(data.publications);
+
+            const citationValue =
+                Number(data.citations);
+
+            const hValue =
+                Number(data.h_index);
+
+            const i10Value =
+                Number(data.i10_index);
+
+
+            /*
+            ============================================
+            VALIDATE VALUES
+            ============================================
+            */
+
+            const safePublications =
+                Number.isFinite(
+                    publicationValue
+                )
+                    ? publicationValue
+                    : 0;
+
+
+            const safeCitations =
+                Number.isFinite(
+                    citationValue
+                )
+                    ? citationValue
+                    : 0;
+
+
+            const safeHIndex =
+                Number.isFinite(
+                    hValue
+                )
+                    ? hValue
+                    : 0;
+
+
+            const safeI10 =
+                Number.isFinite(
+                    i10Value
+                )
+                    ? i10Value
+                    : 0;
+
+
+            /*
+            ============================================
+            DISPLAY
+            ============================================
+            */
+
+            animateScholarNumber(
+                publications,
+                safePublications
+            );
+
+
+            animateScholarNumber(
+                citations,
+                safeCitations
+            );
+
+
+            animateScholarNumber(
+                hIndex,
+                safeHIndex
+            );
+
+
+            animateScholarNumber(
+                i10Index,
+                safeI10
+            );
+
+
+            /*
+            ============================================
+            LAST UPDATED
+            ============================================
+            */
+
+            if (
+                updated &&
+                data.updated
+            ) {
+
+                updated.textContent =
+                    "Last updated: " +
+                    data.updated;
+
+            }
+
+        })
+
+        .catch(error => {
+
+            console.error(
+                "Scholar metrics error:",
+                error
+            );
+
+
+            /*
+            NEVER SHOW NaN
+            */
+
+            publications.textContent = "0";
+            citations.textContent = "0";
+            hIndex.textContent = "0";
+            i10Index.textContent = "0";
+
+
+            if (updated) {
+
+                updated.textContent =
+                    "Metrics unavailable";
+
+            }
+
+        });
+
     }
-
-}
-
-
-/*=========================================
-    SCHOLAR COUNTER
-=========================================*/
-
-function animateScholarValue(
-    element,
-    value
-) {
-
-    if (!element) {
-        return;
-    }
-
-
-    const target =
-        Number(value);
 
 
     /*
-        Prevent NaN
+    ================================================
+    ANIMATED NUMBER
+    ================================================
     */
 
-    if (!Number.isFinite(target)) {
-
-        element.textContent = "—";
-
-        return;
-
-    }
-
-
-    let start = 0;
-
-    const duration = 1600;
-
-    const startTime =
-        performance.now();
-
-
-    function update(currentTime) {
-
-        const elapsed =
-            currentTime -
-            startTime;
-
-
-        const progress =
-            Math.min(
-                elapsed / duration,
-                1
-            );
-
-
-        /*
-            Smooth ease-out animation
-        */
-
-        const eased =
-            1 -
-            Math.pow(
-                1 - progress,
-                3
-            );
-
-
-        const current =
-            Math.floor(
-                start +
-                (target - start) *
-                eased
-            );
-
-
-        element.textContent =
-            current.toLocaleString();
-
-
-        if (progress < 1) {
-
-            requestAnimationFrame(
-                update
-            );
-
-        }
-
-        else {
-
-            element.textContent =
-                target.toLocaleString();
-
-        }
-
-    }
-
-
-    requestAnimationFrame(
-        update
-    );
-
-}
-
-
-/*=========================================
-    DATE FORMAT
-=========================================*/
-
-function formatScholarDate(
-    dateString
-) {
-
-    const date =
-        new Date(dateString);
-
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
+    function animateScholarNumber(
+        element,
+        target
     ) {
 
-        return dateString;
+        if (!element) {
+            return;
+        }
+
+
+        target = Number(target);
+
+
+        if (
+            !Number.isFinite(target)
+        ) {
+
+            target = 0;
+
+        }
+
+
+        const duration = 1400;
+
+        const startTime =
+            performance.now();
+
+
+        function animate(currentTime) {
+
+            const elapsed =
+                currentTime -
+                startTime;
+
+
+            const progress =
+                Math.min(
+                    elapsed / duration,
+                    1
+                );
+
+
+            const easing =
+                1 -
+                Math.pow(
+                    1 - progress,
+                    3
+                );
+
+
+            const value =
+                Math.round(
+                    target * easing
+                );
+
+
+            element.textContent =
+                value.toLocaleString();
+
+
+            if (progress < 1) {
+
+                requestAnimationFrame(
+                    animate
+                );
+
+            }
+
+            else {
+
+                element.textContent =
+                    target.toLocaleString();
+
+            }
+
+        }
+
+
+        requestAnimationFrame(
+            animate
+        );
 
     }
 
 
-    return date.toLocaleDateString(
-        "en-US",
-        {
-            year: "numeric",
-            month: "long",
-            day: "numeric"
-        }
-    );
+    /*
+    ================================================
+    START
+    ================================================
+    */
 
-}
+    if (
+        document.readyState ===
+        "loading"
+    ) {
 
+        document.addEventListener(
+            "DOMContentLoaded",
+            loadScholarMetrics
+        );
 
-/*=========================================
-    LOAD SCHOLAR DATA
-=========================================*/
+    }
 
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
+    else {
 
         loadScholarMetrics();
 
     }
-);
 
+})();
